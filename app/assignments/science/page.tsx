@@ -1,9 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/app/actions/auth'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { SubmissionCheckbox } from '@/components/submission-checkbox'
-import { Atom, Calendar, ExternalLink } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { AssignmentFormDialog } from '@/components/assignment-form-dialog'
+import { AssignmentDeleteButton } from '@/components/assignment-delete-button'
+import { SubmissionListDialog } from '@/components/submission-list-dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Atom, ExternalLink } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import Link from 'next/link'
@@ -17,136 +26,141 @@ export default async function ScienceAssignmentsPage() {
     .from('assignments')
     .select('*')
     .eq('subject', 'science')
-    .order('due_date', { ascending: true })) as any
-
-  // 학생인 경우 제출 정보도 가져오기
-  let submissions: any[] = []
-  if (user?.role === 'student') {
-    const { data } = (await supabase
-      .from('submissions')
-      .select('*')
-      .eq('student_id', user.id)) as any
-    submissions = data || []
-  }
-
-  // 제출 여부 확인 함수
-  const isSubmitted = (assignmentId: string) => {
-    return submissions.some(sub => sub.assignment_id === assignmentId)
-  }
+    .order('created_at', { ascending: false })) as any
 
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-orange-500/10">
-            <Atom className="h-8 w-8 text-orange-500" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-orange-500/10">
+              <Atom className="h-8 w-8 text-orange-500" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight">과학 과제</h1>
+              <p className="text-lg text-muted-foreground">
+                과학 과제 목록 및 제출 현황
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">과학 과제</h1>
-            <p className="text-lg text-muted-foreground">
-              과학 과제 목록 및 제출 현황
-            </p>
-          </div>
+          {user?.role === 'teacher' && (
+            <AssignmentFormDialog subject="science" />
+          )}
         </div>
       </div>
 
-      {/* 과제 목록 */}
-      <div className="space-y-4">
-        {assignments && assignments.length > 0 ? (
-          assignments.map((assignment: any) => {
-            const submitted = isSubmitted(assignment.id)
-            const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date()
+      {/* 과제 목록 테이블 (교사용) */}
+      <Card>
+        <CardContent className="p-0">
+          {assignments && assignments.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">번호</TableHead>
+                  <TableHead className="w-48">제목</TableHead>
+                  <TableHead>내용</TableHead>
+                  <TableHead className="w-32">마감일</TableHead>
+                  <TableHead className="w-28">작성일</TableHead>
+                  <TableHead className="w-28 text-center">제출 명단</TableHead>
+                  <TableHead className="w-24 text-center">작업</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignments.map((assignment: any, index: number) => {
+                  return (
+                    <TableRow key={assignment.id} className="hover:bg-muted/50">
+                      {/* 번호 */}
+                      <TableCell className="font-medium text-muted-foreground">
+                        {assignments.length - index}
+                      </TableCell>
 
-            return (
-              <Card key={assignment.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    {/* 제출 체크박스 (학생만) */}
-                    {user?.role === 'student' && (
-                      <div className="pt-1">
-                        <SubmissionCheckbox
-                          assignmentId={assignment.id}
-                          initialChecked={submitted}
-                        />
-                      </div>
-                    )}
-
-                    {/* 과제 정보 */}
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start justify-between gap-4">
+                      {/* 제목 */}
+                      <TableCell>
                         <div className="space-y-1">
-                          <h3 className="text-xl font-semibold">{assignment.title}</h3>
-                          {assignment.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {assignment.description}
-                            </p>
+                          <div className="font-semibold">{assignment.title}</div>
+                          {assignment.external_url && (
+                            <Link
+                              href={assignment.external_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              링크
+                            </Link>
                           )}
                         </div>
-                        <div className="flex gap-2 shrink-0">
-                          {submitted && (
-                            <Badge variant="default" className="bg-green-500">
-                              제출 완료
-                            </Badge>
-                          )}
-                          {isOverdue && !submitted && (
-                            <Badge variant="destructive">
-                              마감
-                            </Badge>
-                          )}
-                          {!isOverdue && !submitted && (
-                            <Badge variant="secondary">
-                              미제출
-                            </Badge>
-                          )}
+                      </TableCell>
+
+                      {/* 내용 */}
+                      <TableCell>
+                        {assignment.description ? (
+                          <div className="text-sm text-muted-foreground line-clamp-2">
+                            {assignment.description}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* 마감일 */}
+                      <TableCell>
+                        {assignment.due_date ? (
+                          <div className="text-sm">
+                            {format(new Date(assignment.due_date), 'yy.MM.dd HH:mm', { locale: ko })}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* 작성일 */}
+                      <TableCell>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(assignment.created_at), 'yy.MM.dd', { locale: ko })}
                         </div>
-                      </div>
+                      </TableCell>
 
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {assignment.due_date && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              마감: {format(new Date(assignment.due_date), 'PPP', { locale: ko })}
-                            </span>
-                          </div>
-                        )}
-                        {assignment.total_points && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{assignment.total_points}점</span>
-                          </div>
-                        )}
-                      </div>
+                      {/* 제출 명단 */}
+                      <TableCell className="text-center">
+                        <SubmissionListDialog
+                          assignmentId={assignment.id}
+                          assignmentTitle={assignment.title}
+                        />
+                      </TableCell>
 
-                      {assignment.external_url && (
-                        <Link
-                          href={assignment.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          과제 링크 열기
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-          <Card>
-            <CardContent className="flex h-48 items-center justify-center">
+                      {/* 작업 버튼 */}
+                      <TableCell>
+                        <div className="flex justify-center gap-1">
+                          <AssignmentFormDialog
+                            subject="science"
+                            mode="edit"
+                            assignment={assignment}
+                          />
+                          <AssignmentDeleteButton
+                            assignmentId={assignment.id}
+                            assignmentTitle={assignment.title}
+                            subject="science"
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="flex h-48 items-center justify-center">
               <div className="text-center space-y-2">
                 <Atom className="h-12 w-12 mx-auto text-muted-foreground/50" />
                 <p className="text-lg text-muted-foreground">
                   등록된 과학 과제가 없습니다
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
