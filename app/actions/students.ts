@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import type { Database } from '@/lib/supabase/types'
+
+type UserInsert = Database['public']['Tables']['users']['Insert']
 
 export type Student = {
   id: string
@@ -57,13 +60,15 @@ export async function addStudent(formData: {
   }
 
   // 2. users 테이블에 학생 정보 추가
-  const { error: insertError } = await (supabase.from('users') as any).insert({
+  const userData: UserInsert = {
     id: authData.user.id,
     email: formData.email,
     name: formData.name,
     student_number: formData.student_number,
     role: 'student',
-  })
+  }
+
+  const { error: insertError } = await (supabase.from('users') as any).insert(userData)
 
   if (insertError) {
     console.error('학생 정보 저장 실패:', insertError)
