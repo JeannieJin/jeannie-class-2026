@@ -18,8 +18,8 @@ export type Student = {
 export async function getAllStudents(): Promise<Student[]> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('users')
+  const { data, error } = await (supabase
+    .from('users') as any)
     .select('id, email, name, student_number, created_at')
     .eq('role', 'student')
     .order('student_number', { ascending: true })
@@ -57,7 +57,7 @@ export async function addStudent(formData: {
   }
 
   // 2. users 테이블에 학생 정보 추가
-  const { error: insertError } = await supabase.from('users').insert({
+  const { error: insertError } = await (supabase.from('users') as any).insert({
     id: authData.user.id,
     email: formData.email,
     name: formData.name,
@@ -84,8 +84,8 @@ export async function deleteStudent(studentId: string) {
   const supabase = await createClient()
 
   // 1. users 테이블에서 삭제
-  const { error: deleteError } = await supabase
-    .from('users')
+  const { error: deleteError } = await (supabase
+    .from('users') as any)
     .delete()
     .eq('id', studentId)
 
