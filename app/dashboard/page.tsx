@@ -38,12 +38,20 @@ export default async function DashboardPage() {
     .order('period', { ascending: true })
     .limit(6)) as any
 
-  // 최신 전달사항 가져오기
+  // 최신 전달사항 가져오기 (대시보드용 - 5개)
   const { data: announcements } = (await supabase
     .from('announcements')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(5)) as any
+
+  // 가장 최근 전달사항 1개 (빨간 테두리 알림용)
+  const { data: latestAnnouncement } = (await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()) as any
 
   // 이번주에 새로 등록된 과제 가져오기
   const { data: weekAssignments } = (await supabase
@@ -93,138 +101,27 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* 오늘의 수업 & 이번주 과제 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* 오늘의 수업 */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-xl font-bold">오늘의 수업</CardTitle>
-            <Link href="/dashboard/timetable">
-              <Button size="sm" variant="ghost" className="text-sm">
-                전체 시간표
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {todayTimetable && todayTimetable.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {todayTimetable.map((item: any, index: number) => {
-                  const colors = [
-                    'from-blue-500/20 to-blue-500/5 border-blue-500/30',
-                    'from-purple-500/20 to-purple-500/5 border-purple-500/30',
-                    'from-green-500/20 to-green-500/5 border-green-500/30',
-                    'from-orange-500/20 to-orange-500/5 border-orange-500/30',
-                    'from-pink-500/20 to-pink-500/5 border-pink-500/30',
-                    'from-indigo-500/20 to-indigo-500/5 border-indigo-500/30',
-                  ]
-                  const colorClass = colors[index % colors.length]
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 ${colorClass}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/80 backdrop-blur-sm">
-                          <span className="text-lg font-bold">
-                            {item.period}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">
-                            {item.period}교시
-                          </p>
-                          <p className="font-semibold text-base truncate">
-                            {item.subject || '수업 없음'}
-                          </p>
-                        </div>
-                      </div>
-                      {item.teacher_note && (
-                        <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
-                          {item.teacher_note}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-xl bg-muted/30">
-                <div className="text-center space-y-2">
-                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    오늘은 수업이 없습니다
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 이번주 과제 */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-xl font-bold">이번주 과제</CardTitle>
-            <Link href="/assignments">
-              <Button size="sm" variant="ghost" className="text-sm">
-                모두 보기
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {subjectsWithAssignments.length > 0 ? (
-              subjectsWithAssignments.map(([subject, count]) => (
-                <Link
-                  key={subject}
-                  href={`/assignments/${subject}`}
-                  className="block"
-                >
-                  <div className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {SUBJECT_NAMES[subject] || subject}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        이번주에 {count}건의 새 과제
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">
-                      {count}건
-                    </Badge>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-xl bg-muted/30">
-                <div className="text-center space-y-2">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    이번주 새로운 과제가 없습니다
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 전달사항 & 일정 */}
+      {/* 알림 & 이번주 일정 */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* 알림/전달사항 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="border-red-500 border-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <Bell className="h-5 w-5" />
               알림
             </CardTitle>
+            <Link href="/dashboard/announcements">
+              <Button size="sm" variant="ghost" className="text-sm">
+                전체 보기
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent className="space-y-3">
             {announcements && announcements.length > 0 ? (
               announcements.map((item: any) => (
                 <div
                   key={item.id}
-                  className="rounded-lg border-l-4 border-primary bg-primary/5 p-4"
+                  className="rounded-lg border-l-4 border-red-500 bg-red-50/30 dark:bg-red-950/20 p-4"
                 >
                   <div className="flex items-start gap-2">
                     {item.is_pinned && (
@@ -348,6 +245,122 @@ export default async function DashboardPage() {
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">
                     이번 주 일정이 없습니다
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 오늘의 수업 & 이번주 과제 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* 오늘의 수업 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="text-xl font-bold">오늘의 수업</CardTitle>
+            <Link href="/dashboard/timetable">
+              <Button size="sm" variant="ghost" className="text-sm">
+                전체 시간표
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {todayTimetable && todayTimetable.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {todayTimetable.map((item: any, index: number) => {
+                  const colors = [
+                    'from-blue-500/20 to-blue-500/5 border-blue-500/30',
+                    'from-purple-500/20 to-purple-500/5 border-purple-500/30',
+                    'from-green-500/20 to-green-500/5 border-green-500/30',
+                    'from-orange-500/20 to-orange-500/5 border-orange-500/30',
+                    'from-pink-500/20 to-pink-500/5 border-pink-500/30',
+                    'from-indigo-500/20 to-indigo-500/5 border-indigo-500/30',
+                  ]
+                  const colorClass = colors[index % colors.length]
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 ${colorClass}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/80 backdrop-blur-sm">
+                          <span className="text-lg font-bold">
+                            {item.period}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            {item.period}교시
+                          </p>
+                          <p className="font-semibold text-base truncate">
+                            {item.subject || '수업 없음'}
+                          </p>
+                        </div>
+                      </div>
+                      {item.teacher_note && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                          {item.teacher_note}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-48 items-center justify-center rounded-xl bg-muted/30">
+                <div className="text-center space-y-2">
+                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">
+                    오늘은 수업이 없습니다
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 이번주 과제 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="text-xl font-bold">이번주 과제</CardTitle>
+            <Link href="/assignments">
+              <Button size="sm" variant="ghost" className="text-sm">
+                모두 보기
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {subjectsWithAssignments.length > 0 ? (
+              subjectsWithAssignments.map(([subject, count]) => (
+                <Link
+                  key={subject}
+                  href={`/assignments/${subject}`}
+                  className="block"
+                >
+                  <div className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {SUBJECT_NAMES[subject] || subject}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        이번주에 {count}건의 새 과제
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="shrink-0">
+                      {count}건
+                    </Badge>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="flex h-48 items-center justify-center rounded-xl bg-muted/30">
+                <div className="text-center space-y-2">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">
+                    이번주 새로운 과제가 없습니다
                   </p>
                 </div>
               </div>
