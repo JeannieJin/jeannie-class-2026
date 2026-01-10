@@ -20,6 +20,7 @@ import {
   Atom,
   Languages,
   FolderOpen,
+  Users,
 } from 'lucide-react'
 import { logout } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
@@ -90,6 +91,11 @@ const navItems = [
     title: '참고링크',
     href: '/dashboard/links',
     icon: Link2,
+  },
+  {
+    title: '학생명단',
+    href: '/dashboard/students',
+    icon: Users,
   },
   {
     title: '프로필',
