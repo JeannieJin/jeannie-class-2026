@@ -32,7 +32,28 @@ drop table if exists public.timetable cascade;
 drop table if exists public.users cascade;
 
 -- ============================================================================
--- 2. 유틸리티 함수 생성 (RLS 성능 최적화용)
+-- 2. 새로운 스키마 적용
+-- ============================================================================
+
+-- UUID 확장 활성화
+create extension if not exists "uuid-ossp";
+
+-- ============================================================================
+-- users 테이블 (사용자 - 교사/학생)
+-- ============================================================================
+create table public.users (
+  id uuid references auth.users on delete cascade not null primary key,
+  email text unique not null,
+  role text not null check (role in ('teacher', 'student')),
+  name text not null,
+  student_number integer unique,
+  avatar_url text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- ============================================================================
+-- 유틸리티 함수 생성 (RLS 성능 최적화용)
 -- ============================================================================
 
 -- 현재 사용자가 교사인지 확인하는 함수
@@ -63,25 +84,8 @@ as $$
 $$;
 
 -- ============================================================================
--- 3. 새로운 스키마 적용
+-- users 테이블 RLS 정책
 -- ============================================================================
-
--- UUID 확장 활성화
-create extension if not exists "uuid-ossp";
-
--- ============================================================================
--- users 테이블 (사용자 - 교사/학생)
--- ============================================================================
-create table public.users (
-  id uuid references auth.users on delete cascade not null primary key,
-  email text unique not null,
-  role text not null check (role in ('teacher', 'student')),
-  name text not null,
-  student_number integer unique,
-  avatar_url text,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
 
 alter table public.users enable row level security;
 
