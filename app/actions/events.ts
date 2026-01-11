@@ -30,7 +30,7 @@ export async function getEventsByMonth(year: number, month: number) {
     .gte('event_date', startDate)
     .lte('event_date', endDate)
     .order('event_date', { ascending: true })
-    .order('start_time', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (error) {
     console.error('일정 조회 오류:', error)
@@ -55,7 +55,7 @@ export async function getEventsByDate(date: string) {
     .from('events')
     .select('*')
     .eq('event_date', date)
-    .order('start_time', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (error) {
     console.error('일정 조회 오류:', error)
@@ -99,7 +99,7 @@ export async function getThisWeekEvents() {
     .gte('event_date', startDate)
     .lte('event_date', endDate)
     .order('event_date', { ascending: true })
-    .order('start_time', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (error) {
     console.error('이번주 일정 조회 오류:', error)
