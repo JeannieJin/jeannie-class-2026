@@ -78,9 +78,14 @@ returns text
 stable
 security definer
 set search_path = public
-language sql
+language plpgsql
 as $$
-  select role from public.users where id = auth.uid();
+declare
+  user_role text;
+begin
+  select role into user_role from public.users where id = auth.uid();
+  return user_role;
+end;
 $$;
 
 -- ============================================================================
