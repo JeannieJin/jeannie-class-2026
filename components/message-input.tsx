@@ -42,7 +42,7 @@ export default function MessageInput({ partnerId }: MessageInputProps) {
     // Enter만 누르면 전송, Shift+Enter는 줄바꿈
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e as any)
+      handleSubmit(e)
     }
   }
 

@@ -48,8 +48,8 @@ function checkComponentDirectives(file: ScannedFile): Issue[] {
     issues.push(
       createIssue(
         Severity.HIGH,
-        "'use client' 지시어 누락',
-        '클라이언트 훅을 사용하지만 'use client' 지시어가 없습니다",
+        "'use client' 지시어 누락",
+        "클라이언트 훅을 사용하지만 'use client' 지시어가 없습니다",
         {
           file: file.path,
           line: lineNumber,
