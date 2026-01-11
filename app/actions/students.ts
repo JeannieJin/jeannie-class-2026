@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { Database } from '@/lib/supabase/types'
+import { getCurrentUser } from './auth'
 
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
@@ -22,7 +23,7 @@ export async function getAllStudents(): Promise<Student[]> {
   const supabase = await createClient()
 
   const { data, error } = await (supabase
-    .from('users') as any)
+    .from('users'))
     .select('id, email, name, student_number, created_at')
     .eq('role', 'student')
     .order('student_number', { ascending: true })
@@ -37,6 +38,7 @@ export async function getAllStudents(): Promise<Student[]> {
 
 /**
  * 학생 추가 (Supabase Auth에 계정 생성 + users 테이블에 정보 추가)
+ * 교사만 실행 가능
  */
 export async function addStudent(formData: {
   email: string
@@ -44,6 +46,17 @@ export async function addStudent(formData: {
   name: string
   student_number: number
 }) {
+  // 권한 검증: 교사만 학생 추가 가능
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser) {
+    throw new Error('로그인이 필요합니다.')
+  }
+
+  if (currentUser.role !== 'teacher') {
+    throw new Error('교사만 학생을 추가할 수 있습니다.')
+  }
+
   const adminClient = createAdminClient()
   const supabase = await createClient()
 
@@ -68,7 +81,7 @@ export async function addStudent(formData: {
     role: 'student',
   }
 
-  const { error: insertError } = await (supabase.from('users') as any).insert(userData)
+  const { error: insertError } = await supabase.from('users').insert(userData as never)
 
   if (insertError) {
     console.error('학생 정보 저장 실패:', insertError)
@@ -83,14 +96,26 @@ export async function addStudent(formData: {
 
 /**
  * 학생 삭제 (users 테이블에서 삭제 + Auth 계정 삭제)
+ * 교사만 실행 가능
  */
 export async function deleteStudent(studentId: string) {
+  // 권한 검증: 교사만 학생 삭제 가능
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser) {
+    throw new Error('로그인이 필요합니다.')
+  }
+
+  if (currentUser.role !== 'teacher') {
+    throw new Error('교사만 학생을 삭제할 수 있습니다.')
+  }
+
   const adminClient = createAdminClient()
   const supabase = await createClient()
 
   // 1. users 테이블에서 삭제
   const { error: deleteError } = await (supabase
-    .from('users') as any)
+    .from('users'))
     .delete()
     .eq('id', studentId)
 
@@ -114,8 +139,20 @@ export async function deleteStudent(studentId: string) {
 
 /**
  * 학생 비밀번호 변경
+ * 교사만 실행 가능
  */
 export async function updateStudentPassword(studentId: string, newPassword: string) {
+  // 권한 검증: 교사만 학생 비밀번호 변경 가능
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser) {
+    throw new Error('로그인이 필요합니다.')
+  }
+
+  if (currentUser.role !== 'teacher') {
+    throw new Error('교사만 학생 비밀번호를 변경할 수 있습니다.')
+  }
+
   const adminClient = createAdminClient()
 
   const { error } = await adminClient.auth.admin.updateUserById(studentId, {

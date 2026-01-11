@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { Database } from '@/lib/supabase/types'
 
 /**
  * 로그인 Server Action
@@ -26,7 +27,8 @@ export async function login(formData: FormData) {
 }
 
 /**
- * 회원가입 Server Action
+ * 회원가입 Server Action (학생 전용)
+ * 교사 계정은 데이터베이스에서 직접 생성해야 합니다
  */
 export async function signup(formData: FormData) {
   const supabase = await createClient()
@@ -34,8 +36,12 @@ export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const name = formData.get('name') as string
-  const role = formData.get('role') as 'teacher' | 'student'
-  const studentNumber = formData.get('studentNumber') as string | null
+  const studentNumber = formData.get('studentNumber') as string
+
+  // 학번 검증
+  if (!studentNumber || studentNumber.trim() === '') {
+    return { error: '학번을 입력해주세요.' }
+  }
 
   // 1. 인증 사용자 생성
   const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -51,14 +57,18 @@ export async function signup(formData: FormData) {
     return { error: '회원가입에 실패했습니다.' }
   }
 
-  // 2. users 테이블에 프로필 정보 저장
-  const { error: profileError } = await supabase.from('users').insert({
+  // 2. users 테이블에 프로필 정보 저장 (항상 학생으로 등록)
+  const userData: Database['public']['Tables']['users']['Insert'] = {
     id: authData.user.id,
     email,
-    role,
+    role: 'student' as const, // 보안상 항상 학생으로 등록
     name,
-    student_number: studentNumber ? parseInt(studentNumber) : null,
-  } as any)
+    student_number: parseInt(studentNumber),
+  }
+
+  const { error: profileError } = await supabase
+    .from('users')
+    .insert(userData as never)
 
   if (profileError) {
     return { error: profileError.message }
@@ -87,7 +97,7 @@ export async function logout() {
 /**
  * 현재 로그인한 사용자 정보 가져오기
  */
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<Database['public']['Tables']['users']['Row'] | null> {
   const supabase = await createClient()
 
   const {

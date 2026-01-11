@@ -26,14 +26,14 @@ export async function toggleSubmission(assignmentId: string) {
     .select('*')
     .eq('assignment_id', assignmentId)
     .eq('student_id', user.id)
-    .single()) as any
+    .single())
 
   if (existingSubmission) {
     // 이미 제출된 경우 삭제
     const { error } = (await supabase
       .from('submissions')
       .delete()
-      .eq('id', existingSubmission.id)) as any
+      .eq('id', existingSubmission.id))
 
     if (error) {
       return { error: '제출 취소 중 오류가 발생했습니다' }
@@ -49,7 +49,7 @@ export async function toggleSubmission(assignmentId: string) {
         assignment_id: assignmentId,
         student_id: user.id,
         status: 'submitted'
-      })) as any
+      }))
 
     if (error) {
       console.error('Submission error:', error)

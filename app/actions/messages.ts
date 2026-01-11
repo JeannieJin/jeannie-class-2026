@@ -12,7 +12,7 @@ type Message = Database['public']['Tables']['messages']['Row']
 // 메시지 전송
 export async function sendMessage(receiverId: string, content: string) {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.' }
@@ -24,11 +24,11 @@ export async function sendMessage(receiverId: string, content: string) {
   }
 
   // 수신자 확인
-  const { data: receiver, error: receiverError } = await (supabase
-    .from('users') as any)
+  const { data: receiver, error: receiverError } = await supabase
+    .from('users')
     .select('id, role')
     .eq('id', receiverId)
-    .single()
+    .single<{ id: string; role: 'teacher' | 'student' }>()
 
   if (receiverError || !receiver) {
     return { error: '사용자를 찾을 수 없습니다.' }
@@ -45,9 +45,9 @@ export async function sendMessage(receiverId: string, content: string) {
     content: content.trim(),
   }
 
-  const { data, error } = await (supabase
-    .from('messages') as any)
-    .insert(messageData)
+  const { data, error } = await supabase
+    .from('messages')
+    .insert(messageData as never)
     .select()
     .single()
 
@@ -63,7 +63,7 @@ export async function sendMessage(receiverId: string, content: string) {
 // 대화 상대 목록 조회
 export async function getConversationList() {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.' }
@@ -72,7 +72,7 @@ export async function getConversationList() {
   try {
     // 현재 사용자가 관련된 모든 메시지 조회
     const { data: messages, error: messagesError } = await (supabase
-      .from('messages') as any)
+      .from('messages'))
       .select('*')
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
@@ -99,11 +99,11 @@ export async function getConversationList() {
     const conversations = await Promise.all(
       partnerIds.map(async (partnerId) => {
         // 상대방 정보 조회
-        const { data: partner } = await (supabase
-          .from('users') as any)
+        const { data: partner } = await supabase
+          .from('users')
           .select('id, name, role, avatar_url')
           .eq('id', partnerId)
-          .single()
+          .single<{ id: string; name: string; role: 'teacher' | 'student'; avatar_url: string | null }>()
 
         if (!partner) return null
 
@@ -131,10 +131,10 @@ export async function getConversationList() {
 
     // null 제거 및 최근 메시지 시간 순 정렬
     const validConversations = conversations
-      .filter((conv) => conv !== null)
+      .filter((conv): conv is NonNullable<typeof conv> => conv !== null)
       .sort((a, b) => {
-        const timeA = a?.lastMessage?.created_at || ''
-        const timeB = b?.lastMessage?.created_at || ''
+        const timeA = (a.lastMessage as any)?.created_at || ''
+        const timeB = (b.lastMessage as any)?.created_at || ''
         return timeB.localeCompare(timeA)
       })
 
@@ -148,7 +148,7 @@ export async function getConversationList() {
 // 특정 상대와의 메시지 내역 조회
 export async function getMessages(partnerId: string) {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.' }
@@ -157,7 +157,7 @@ export async function getMessages(partnerId: string) {
   try {
     // 양방향 메시지 조회
     const { data: messages, error: messagesError } = await (supabase
-      .from('messages') as any)
+      .from('messages'))
       .select('*')
       .or(
         `and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`
@@ -173,7 +173,7 @@ export async function getMessages(partnerId: string) {
     const messagesWithSender = await Promise.all(
       (messages || []).map(async (message: Message) => {
         const { data: sender } = await (supabase
-          .from('users') as any)
+          .from('users'))
           .select('id, name, role, avatar_url')
           .eq('id', message.sender_id)
           .single()
@@ -195,16 +195,16 @@ export async function getMessages(partnerId: string) {
 // 메시지 읽음 처리
 export async function markMessagesAsRead(partnerId: string) {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.' }
   }
 
   // 상대방이 보낸 안읽은 메시지를 모두 읽음 처리
-  const { error } = await (supabase
-    .from('messages') as any)
-    .update({ is_read: true })
+  const { error } = await supabase
+    .from('messages')
+    .update({ is_read: true } as never)
     .eq('sender_id', partnerId)
     .eq('receiver_id', user.id)
     .eq('is_read', false)
@@ -221,7 +221,7 @@ export async function markMessagesAsRead(partnerId: string) {
 // 메시지 삭제
 export async function deleteMessage(messageId: string) {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.' }
@@ -229,7 +229,7 @@ export async function deleteMessage(messageId: string) {
 
   // RLS 정책이 권한을 체크하므로 직접 삭제 시도
   const { error } = await (supabase
-    .from('messages') as any)
+    .from('messages'))
     .delete()
     .eq('id', messageId)
     .eq('sender_id', user.id)
@@ -246,14 +246,14 @@ export async function deleteMessage(messageId: string) {
 // 안읽은 메시지 개수 조회
 export async function getUnreadMessageCount() {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     return { error: '로그인이 필요합니다.', count: 0 }
   }
 
   const { count, error } = await (supabase
-    .from('messages') as any)
+    .from('messages'))
     .select('*', { count: 'exact', head: true })
     .eq('receiver_id', user.id)
     .eq('is_read', false)
