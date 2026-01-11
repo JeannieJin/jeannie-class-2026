@@ -1,6 +1,7 @@
 import { getAllStudents } from '@/app/actions/students'
 import { getCurrentUser } from '@/app/actions/auth'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { StudentAddDialog } from '@/components/student-add-dialog'
 import { StudentPasswordDialog } from '@/components/student-password-dialog'
 import { StudentDeleteButton } from '@/components/student-delete-button'
@@ -13,7 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Users, MessageSquare } from 'lucide-react'
 
 export default async function StudentsPage() {
   const user = (await getCurrentUser()) as any

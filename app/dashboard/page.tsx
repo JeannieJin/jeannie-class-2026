@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/app/actions/auth'
+import { getUnreadMessageCount, getConversationList } from '@/app/actions/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Bell, FileText, BookOpen } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Calendar, Bell, FileText, BookOpen, MessageSquare } from 'lucide-react'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import Link from 'next/link'
@@ -21,6 +23,19 @@ const SUBJECT_NAMES: Record<string, string> = {
 export default async function DashboardPage() {
   const user = (await getCurrentUser()) as any
   const supabase = await createClient()
+
+  // 안읽은 메시지 정보 조회
+  const unreadResult = await getUnreadMessageCount()
+  const unreadCount = unreadResult.count || 0
+
+  // 안읽은 메시지가 있는 대화 목록
+  let unreadConversations: any[] = []
+  if (unreadCount > 0) {
+    const conversationsResult = await getConversationList()
+    unreadConversations = (conversationsResult.data || [])
+      .filter((conv: any) => conv.unreadCount > 0)
+      .slice(0, 3) // 최대 3개만 표시
+  }
 
   // 오늘 요일 (0: 일요일, 1: 월요일, ...)
   const today = new Date()
@@ -100,6 +115,49 @@ export default async function DashboardPage() {
           자신에게 투자하고 꿈을 향한 첫 걸음을 내딛어보세요
         </p>
       </div>
+
+      {/* 안읽은 메시지 알림 */}
+      {unreadCount > 0 && (
+        <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/20">
+          <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <AlertTitle className="text-blue-900 dark:text-blue-100 font-semibold">
+            새로운 메시지 {unreadCount}개
+          </AlertTitle>
+          <AlertDescription className="mt-2 space-y-3">
+            <div className="text-blue-800 dark:text-blue-200">
+              {unreadConversations.length > 0 ? (
+                <div className="space-y-2">
+                  {unreadConversations.map((conv: any) => (
+                    <Link
+                      key={conv.partner.id}
+                      href={`/dashboard/messages/${conv.partner.id}`}
+                      className="flex items-center justify-between p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{conv.partner.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {conv.partner.role === 'teacher' ? '선생님' : '학생'}
+                        </Badge>
+                      </div>
+                      <Badge variant="destructive" className="text-xs">
+                        {conv.unreadCount}개
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p>새로운 메시지가 있습니다.</p>
+              )}
+            </div>
+            <Link href="/dashboard/messages">
+              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                메시지 확인하기
+              </Button>
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* 알림 & 이번주 일정 */}
       <div className="grid gap-6 lg:grid-cols-2">

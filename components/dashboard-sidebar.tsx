@@ -7,6 +7,7 @@ import {
   Home,
   Calendar,
   Bell,
+  MessageSquare,
   FileText,
   CalendarDays,
   Link2,
@@ -25,6 +26,7 @@ import {
 import { logout } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useState } from 'react'
@@ -44,6 +46,11 @@ const navItems = [
     title: '전달사항',
     href: '/dashboard/announcements',
     icon: Bell,
+  },
+  {
+    title: '메시지',
+    href: '/dashboard/messages',
+    icon: MessageSquare,
   },
   {
     title: '과제',
@@ -106,10 +113,12 @@ const navItems = [
 
 export function DashboardSidebar({
   userName = "학생",
-  avatarUrl
+  avatarUrl,
+  unreadMessageCount = 0
 }: {
   userName?: string
   avatarUrl?: string | null
+  unreadMessageCount?: number
 }) {
   const pathname = usePathname()
   const today = new Date()
@@ -212,7 +221,12 @@ export function DashboardSidebar({
                   )}
                 >
                   <item.icon className="h-5 w-5" />
-                  {item.title}
+                  <span className="flex-1">{item.title}</span>
+                  {item.title === '메시지' && unreadMessageCount > 0 && (
+                    <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                      {unreadMessageCount}
+                    </Badge>
+                  )}
                 </Link>
               )}
             </div>
