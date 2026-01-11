@@ -5,6 +5,37 @@
 create extension if not exists "uuid-ossp";
 
 -- ============================================================================
+-- 유틸리티 함수 생성 (RLS 성능 최적화용)
+-- ============================================================================
+
+-- 현재 사용자가 교사인지 확인하는 함수
+create or replace function public.is_teacher()
+returns boolean
+stable
+security definer
+set search_path = public
+language plpgsql
+as $$
+begin
+  return exists (
+    select 1 from public.users
+    where id = auth.uid() and role = 'teacher'
+  );
+end;
+$$;
+
+-- 현재 사용자의 역할을 반환하는 함수
+create or replace function public.current_user_role()
+returns text
+stable
+security definer
+set search_path = public
+language sql
+as $$
+  select role from public.users where id = auth.uid();
+$$;
+
+-- ============================================================================
 -- 1. users 테이블 (사용자 - 교사/학생)
 -- ============================================================================
 create table public.users (
@@ -13,42 +44,25 @@ create table public.users (
   role text not null check (role in ('teacher', 'student')),
   name text not null,
   student_number integer unique,
+  avatar_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 alter table public.users enable row level security;
 
-create policy "사용자는 자신의 데이터를 볼 수 있음"
+-- 단일 SELECT 정책으로 통합
+create policy "사용자 조회 정책"
   on public.users for select
-  using (auth.uid() = id);
-
-create policy "교사는 모든 사용자를 볼 수 있음"
-  on public.users for select
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (auth.uid() = id or public.is_teacher());
 
 create policy "교사는 학생을 수정할 수 있음"
   on public.users for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 학생을 추가할 수 있음"
   on public.users for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 -- ============================================================================
 -- 2. timetable 테이블 (수업 시간표)
@@ -71,32 +85,17 @@ create policy "모두 시간표를 볼 수 있음"
   on public.timetable for select
   using (true);
 
-create policy "교사는 시간표를 수정할 수 있음"
+create policy "교사는 시간표를 관리할 수 있음"
   on public.timetable for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 create policy "교사는 시간표를 업데이트할 수 있음"
   on public.timetable for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 시간표를 삭제할 수 있음"
   on public.timetable for delete
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 -- ============================================================================
 -- 3. announcements 테이블 (전달사항)
@@ -120,30 +119,15 @@ create policy "모두 전달사항을 볼 수 있음"
 
 create policy "교사는 전달사항을 작성할 수 있음"
   on public.announcements for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 create policy "교사는 전달사항을 수정할 수 있음"
   on public.announcements for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 전달사항을 삭제할 수 있음"
   on public.announcements for delete
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 -- ============================================================================
 -- 4. links 테이블 (참고 링크)
@@ -168,30 +152,15 @@ create policy "모두 링크를 볼 수 있음"
 
 create policy "교사는 링크를 작성할 수 있음"
   on public.links for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 create policy "교사는 링크를 수정할 수 있음"
   on public.links for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 링크를 삭제할 수 있음"
   on public.links for delete
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 -- ============================================================================
 -- 5. events 테이블 (일정)
@@ -229,30 +198,15 @@ create policy "학생은 자신의 개인 일정을 삭제할 수 있음"
 
 create policy "교사는 모든 일정을 작성할 수 있음"
   on public.events for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 create policy "교사는 모든 일정을 수정할 수 있음"
   on public.events for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 모든 일정을 삭제할 수 있음"
   on public.events for delete
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 -- ============================================================================
 -- 6. assignments 테이블 (과제)
@@ -277,30 +231,15 @@ create policy "모두 과제를 볼 수 있음"
 
 create policy "교사는 과제를 작성할 수 있음"
   on public.assignments for insert
-  with check (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  with check (public.is_teacher());
 
 create policy "교사는 과제를 수정할 수 있음"
   on public.assignments for update
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 create policy "교사는 과제를 삭제할 수 있음"
   on public.assignments for delete
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (public.is_teacher());
 
 -- ============================================================================
 -- 7. submissions 테이블 (과제 제출)
@@ -316,18 +255,10 @@ create table public.submissions (
 
 alter table public.submissions enable row level security;
 
-create policy "학생은 자신의 제출을 볼 수 있음"
+-- 단일 SELECT 정책으로 통합
+create policy "제출 내역 조회 정책"
   on public.submissions for select
-  using (student_id = auth.uid());
-
-create policy "교사는 모든 제출을 볼 수 있음"
-  on public.submissions for select
-  using (
-    exists (
-      select 1 from public.users
-      where id = auth.uid() and role = 'teacher'
-    )
-  );
+  using (student_id = auth.uid() or public.is_teacher());
 
 create policy "학생은 자신의 제출을 추가할 수 있음"
   on public.submissions for insert
@@ -336,6 +267,54 @@ create policy "학생은 자신의 제출을 추가할 수 있음"
 create policy "학생은 자신의 제출을 삭제할 수 있음"
   on public.submissions for delete
   using (student_id = auth.uid());
+
+-- ============================================================================
+-- 8. messages 테이블 (메시지)
+-- ============================================================================
+create table public.messages (
+  id uuid default uuid_generate_v4() primary key,
+  sender_id uuid references public.users(id) on delete cascade not null,
+  receiver_id uuid references public.users(id) on delete cascade not null,
+  content text not null,
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+
+  constraint different_users check (sender_id != receiver_id)
+);
+
+alter table public.messages enable row level security;
+
+create policy "사용자는 자신과 관련된 메시지를 볼 수 있음"
+  on public.messages for select
+  using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+create policy "메시지 전송 정책"
+  on public.messages for insert
+  with check (
+    sender_id = auth.uid()
+    and (
+      public.is_teacher()
+      or
+      (
+        public.current_user_role() = 'student'
+        and
+        exists (
+          select 1 from public.users
+          where id = receiver_id and role = 'teacher'
+        )
+      )
+    )
+  );
+
+create policy "발신자만 자신의 메시지를 삭제할 수 있음"
+  on public.messages for delete
+  using (sender_id = auth.uid());
+
+create policy "수신자만 메시지를 읽음 처리할 수 있음"
+  on public.messages for update
+  using (receiver_id = auth.uid())
+  with check (receiver_id = auth.uid());
 
 -- ============================================================================
 -- 인덱스 생성 (성능 최적화)
@@ -359,8 +338,13 @@ create index idx_announcements_pinned on public.announcements(is_pinned);
 create index idx_events_date on public.events(event_date);
 create index idx_assignments_subject on public.assignments(subject);
 
+-- messages 테이블 인덱스
+create index idx_messages_receiver on public.messages(receiver_id);
+create index idx_messages_conversation on public.messages(sender_id, receiver_id, created_at desc);
+create index idx_messages_receiver_unread on public.messages(receiver_id, is_read) where is_read = false;
+
 -- ============================================================================
--- updated_at 자동 업데이트 트리거
+-- updated_at 자동 업데이트 트리거 함수
 -- ============================================================================
 create or replace function public.handle_updated_at()
 returns trigger
@@ -374,6 +358,9 @@ begin
 end;
 $$;
 
+-- ============================================================================
+-- 트리거 생성
+-- ============================================================================
 create trigger set_updated_at before update on public.users
   for each row execute function public.handle_updated_at();
 
@@ -392,76 +379,18 @@ create trigger set_updated_at before update on public.events
 create trigger set_updated_at before update on public.assignments
   for each row execute function public.handle_updated_at();
 
--- ============================================================================
--- 8. messages 테이블 (메시지)
--- ============================================================================
-create table public.messages (
-  id uuid default uuid_generate_v4() primary key,
-  sender_id uuid references public.users(id) on delete cascade not null,
-  receiver_id uuid references public.users(id) on delete cascade not null,
-  content text not null,
-  is_read boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-
-  constraint different_users check (sender_id != receiver_id)
-);
-
-alter table public.messages enable row level security;
-
--- 사용자는 자신이 발신자 또는 수신자인 메시지를 볼 수 있음
-create policy "사용자는 자신과 관련된 메시지를 볼 수 있음"
-  on public.messages for select
-  using (auth.uid() = sender_id or auth.uid() = receiver_id);
-
--- 학생은 교사에게만 메시지를 보낼 수 있음
-create policy "학생은 교사에게만 메시지를 보낼 수 있음"
-  on public.messages for insert
-  with check (
-    sender_id = auth.uid()
-    and (
-      exists (
-        select 1 from public.users
-        where id = auth.uid() and role = 'teacher'
-      )
-      or
-      (
-        exists (
-          select 1 from public.users
-          where id = auth.uid() and role = 'student'
-        )
-        and
-        exists (
-          select 1 from public.users
-          where id = receiver_id and role = 'teacher'
-        )
-      )
-    )
-  );
-
--- 발신자만 자신의 메시지를 삭제할 수 있음
-create policy "발신자만 자신의 메시지를 삭제할 수 있음"
-  on public.messages for delete
-  using (sender_id = auth.uid());
-
--- 수신자만 메시지를 읽음 처리할 수 있음
-create policy "수신자만 메시지를 읽음 처리할 수 있음"
-  on public.messages for update
-  using (receiver_id = auth.uid())
-  with check (receiver_id = auth.uid());
-
--- 인덱스 (성능 최적화)
--- sender_id는 conversation 복합 인덱스로 커버됨
-create index idx_messages_receiver on public.messages(receiver_id);
-create index idx_messages_conversation on public.messages(sender_id, receiver_id, created_at desc);
-create index idx_messages_receiver_unread on public.messages(receiver_id, is_read) where is_read = false;
-
--- updated_at 자동 업데이트 트리거
 create trigger set_updated_at before update on public.messages
   for each row execute function public.handle_updated_at();
 
 -- ============================================================================
 -- 완료!
 -- ============================================================================
--- 이제 Supabase 대시보드에서 Authentication > Users로 이동하여
--- 교사와 학생 계정을 생성하세요.
+-- Performance Advisor 개선사항:
+-- 1. is_teacher() 함수: 교사 권한 체크를 캐싱하여 성능 개선
+-- 2. current_user_role() 함수: 역할 조회를 캐싱
+-- 3. 중복 정책 병합: Multiple Permissive Policies 경고 해결
+-- 4. stable 함수 속성: 함수 결과 캐싱 활성화
+--
+-- Security Advisor의 "Leaked Password Protection Disabled" 경고는
+-- Supabase 대시보드 > Authentication > Settings 에서 활성화하세요.
+-- ============================================================================
