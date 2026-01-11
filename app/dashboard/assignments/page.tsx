@@ -7,13 +7,13 @@ import { ko } from 'date-fns/locale'
 
 export default async function AssignmentsPage() {
   const supabase = await createClient()
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   // 과제 목록 가져오기
   const { data: assignments } = (await supabase
     .from('assignments')
     .select('*')
-    .order('due_date', { ascending: true })) as any
+    .order('due_date', { ascending: true }))
 
   // 학생인 경우 제출 여부 확인
   let submissions: any[] = []
@@ -21,7 +21,7 @@ export default async function AssignmentsPage() {
     const { data } = (await supabase
       .from('submissions')
       .select('assignment_id, status')
-      .eq('student_id', user.id)) as any
+      .eq('student_id', user.id))
     submissions = data || []
   }
 

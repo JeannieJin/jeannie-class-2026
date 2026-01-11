@@ -30,7 +30,7 @@ export default function ProfilePage() {
         .from('users')
         .select('*')
         .eq('id', authUser.id)
-        .single()) as any
+        .single())
 
       if (profile) {
         setUser(profile)
@@ -74,7 +74,7 @@ export default function ProfilePage() {
       const { error: updateError } = (await supabase
         .from('users')
         .update({ avatar_url: publicUrl })
-        .eq('id', user.id)) as any
+        .eq('id', user.id))
 
       if (updateError) {
         throw updateError

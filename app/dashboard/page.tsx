@@ -21,7 +21,7 @@ const SUBJECT_NAMES: Record<string, string> = {
 }
 
 export default async function DashboardPage() {
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
   const supabase = await createClient()
 
   // 안읽은 메시지 정보 조회
@@ -51,14 +51,14 @@ export default async function DashboardPage() {
     .select('*')
     .eq('day_of_week', dayOfWeek)
     .order('period', { ascending: true })
-    .limit(6)) as any
+    .limit(6))
 
   // 최신 전달사항 가져오기 (대시보드용 - 5개)
   const { data: announcements } = (await supabase
     .from('announcements')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(5)) as any
+    .limit(5))
 
   // 가장 최근 전달사항 1개 (빨간 테두리 알림용)
   const { data: latestAnnouncement } = (await supabase
@@ -66,14 +66,14 @@ export default async function DashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()) as any
+    .single())
 
   // 이번주에 새로 등록된 과제 가져오기
   const { data: weekAssignments } = (await supabase
     .from('assignments')
     .select('subject')
     .gte('created_at', weekStart.toISOString())
-    .lte('created_at', weekEnd.toISOString())) as any
+    .lte('created_at', weekEnd.toISOString()))
 
   // 과목별 과제 개수 계산
   const assignmentsBySubject: Record<string, number> = {}
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
     .lte('event_date', weekEndDate)
     .order('event_date', { ascending: true })
     .order('start_time', { ascending: true })
-    .limit(5)) as any
+    .limit(5))
 
   return (
     <div className="space-y-8">

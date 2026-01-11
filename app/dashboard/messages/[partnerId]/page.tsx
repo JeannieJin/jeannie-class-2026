@@ -17,7 +17,7 @@ export default async function MessageThreadPage({
   params: Promise<{ partnerId: string }>
 }) {
   const { partnerId } = await params
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')
@@ -26,11 +26,11 @@ export default async function MessageThreadPage({
   const supabase = await createClient()
 
   // 대화 상대 정보 조회
-  const { data: partner, error: partnerError } = await (supabase
-    .from('users') as any)
+  const { data: partner, error: partnerError } = await supabase
+    .from('users')
     .select('id, name, role, avatar_url')
     .eq('id', partnerId)
-    .single()
+    .single<{ id: string; name: string; role: 'teacher' | 'student'; avatar_url: string | null }>()
 
   if (partnerError || !partner) {
     notFound()
@@ -38,7 +38,7 @@ export default async function MessageThreadPage({
 
   // 메시지 내역 조회
   const result = await getMessages(partnerId)
-  const messages = result.data || []
+  const messages = (result.data || []) as any[]
 
   return (
     <div className="space-y-6">

@@ -48,7 +48,7 @@ export default function TimetablePage() {
           .from('users')
           .select('role')
           .eq('id', user.id)
-          .single()) as any
+          .single())
         setIsTeacher(profile?.role === 'teacher')
       }
     }

@@ -25,7 +25,7 @@ export default async function AnnouncementsPage() {
     .from('announcements')
     .select('*')
     .order('is_pinned', { ascending: false })
-    .order('created_at', { ascending: false })) as any
+    .order('created_at', { ascending: false }))
 
   return (
     <div className="space-y-8">

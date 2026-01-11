@@ -9,15 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { GraduationCap } from 'lucide-react'
 
 /**
- * 회원가입 페이지
+ * 회원가입 페이지 (학생 전용)
+ * 교사 계정은 관리자가 데이터베이스에서 직접 생성합니다
  */
 export default function SignupPage() {
   const router = useRouter()
-  const [role, setRole] = useState<'teacher' | 'student'>('student')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -30,8 +29,14 @@ export default function SignupPage() {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const name = formData.get('name') as string
-    const role = formData.get('role') as 'teacher' | 'student'
-    const studentNumber = formData.get('studentNumber') as string | null
+    const studentNumber = formData.get('studentNumber') as string
+
+    // 학번 검증
+    if (!studentNumber || studentNumber.trim() === '') {
+      setError('학번을 입력해주세요.')
+      setIsLoading(false)
+      return
+    }
 
     const supabase = createClient()
 
@@ -53,24 +58,14 @@ export default function SignupPage() {
       return
     }
 
-    // 2. users 테이블에 프로필 정보 저장
-    console.log('프로필 저장 시도:', {
-      id: authData.user.id,
-      email,
-      role,
-      name,
-      student_number: studentNumber ? parseInt(studentNumber) : null,
-    })
-
+    // 2. users 테이블에 프로필 정보 저장 (항상 학생으로 등록)
     const { error: profileError } = await supabase.from('users').insert({
       id: authData.user.id,
       email,
-      role,
+      role: 'student' as const, // 보안상 항상 학생으로 등록
       name,
-      student_number: studentNumber ? parseInt(studentNumber) : null,
-    } as any)
-
-    console.log('프로필 저장 결과 - 에러:', profileError)
+      student_number: parseInt(studentNumber),
+    } as never)
 
     if (profileError) {
       console.error('프로필 저장 실패:', {
@@ -98,7 +93,7 @@ export default function SignupPage() {
               <GraduationCap className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">회원가입</CardTitle>
+          <CardTitle className="text-2xl">학생 회원가입</CardTitle>
           <CardDescription>
             2026 Jeannie Class 학급 관리 시스템
           </CardDescription>
@@ -142,32 +137,15 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">역할</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as 'teacher' | 'student')}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="역할을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">학생</SelectItem>
-                  <SelectItem value="teacher">교사</SelectItem>
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="role" value={role} />
+              <Label htmlFor="studentNumber">학번</Label>
+              <Input
+                id="studentNumber"
+                name="studentNumber"
+                type="number"
+                placeholder="예: 1"
+                required
+              />
             </div>
-            {role === 'student' && (
-              <div className="space-y-2">
-                <Label htmlFor="studentNumber">학번</Label>
-                <Input
-                  id="studentNumber"
-                  name="studentNumber"
-                  type="number"
-                  placeholder="예: 1"
-                />
-              </div>
-            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>

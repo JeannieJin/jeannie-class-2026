@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 
 export default async function SchedulePage() {
   // 사용자 정보 가져오기
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')

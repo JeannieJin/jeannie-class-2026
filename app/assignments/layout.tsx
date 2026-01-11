@@ -7,7 +7,7 @@ export default async function AssignmentsLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')

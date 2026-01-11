@@ -8,7 +8,7 @@ import ConversationList from '@/components/conversation-list'
 import { NewMessageDialog } from '@/components/new-message-dialog'
 
 export default async function MessagesPage() {
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')

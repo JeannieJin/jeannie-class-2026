@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Users, MessageSquare } from 'lucide-react'
 
 export default async function StudentsPage() {
-  const user = (await getCurrentUser()) as any
+  const user = await getCurrentUser()
 
   // 교사만 접근 가능
   if (!user || user.role !== 'teacher') {

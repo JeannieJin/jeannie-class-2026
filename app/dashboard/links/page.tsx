@@ -14,7 +14,7 @@ export default async function LinksPage() {
   const { data: links } = (await supabase
     .from('links')
     .select('*')
-    .order('created_at', { ascending: false })) as any
+    .order('created_at', { ascending: false }))
 
   // 카테고리별로 그룹화
   const linksByCategory = links?.reduce(
