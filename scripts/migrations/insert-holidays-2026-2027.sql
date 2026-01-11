@@ -1,5 +1,6 @@
 -- 2026~2027년 대한민국 공휴일 및 주요 기념일 등록
--- event_type = 'class'로 설정하여 모든 학생이 볼 수 있도록 함
+-- 공휴일: event_type = 'holiday', user_id = NULL (모두가 볼 수 있음)
+-- 기념일: event_type = 'class', user_id = NULL (모두가 볼 수 있음)
 -- created_by는 교사 계정 중 첫 번째 교사로 설정
 
 -- 교사 계정 ID 가져오기
@@ -14,57 +15,58 @@ BEGIN
     RAISE EXCEPTION '교사 계정이 존재하지 않습니다. 먼저 교사 계정을 생성해주세요.';
   END IF;
 
-  -- 2026년 공휴일 및 기념일
-  INSERT INTO public.events (title, description, event_date, event_type, created_by) VALUES
-  -- 공휴일
-  ('새해 첫날', '2026년 새해를 맞이하는 날', '2026-01-01', 'class', teacher_id),
-  ('설날 연휴 (전날)', '음력 1월 1일 전날', '2026-01-28', 'class', teacher_id),
-  ('설날', '음력 1월 1일 - 민족 최대 명절', '2026-01-29', 'class', teacher_id),
-  ('설날 연휴 (다음날)', '음력 1월 1일 다음날', '2026-01-30', 'class', teacher_id),
-  ('삼일절', '3.1 만세운동 기념일', '2026-03-01', 'class', teacher_id),
-  ('어린이날', '어린이의 인격을 존중하고 행복한 삶을 누리게 하는 날', '2026-05-05', 'class', teacher_id),
-  ('부처님 오신 날', '음력 4월 8일 - 석가탄신일', '2026-05-24', 'class', teacher_id),
-  ('현충일', '나라를 위해 목숨을 바친 분들을 추모하는 날', '2026-06-06', 'class', teacher_id),
-  ('광복절', '일본 식민 통치로부터 해방된 날', '2026-08-15', 'class', teacher_id),
-  ('개천절', '단군왕검이 고조선을 건국한 날', '2026-10-03', 'class', teacher_id),
-  ('추석 연휴 (전날)', '음력 8월 15일 전날', '2026-10-05', 'class', teacher_id),
-  ('추석', '음력 8월 15일 - 한가위', '2026-10-06', 'class', teacher_id),
-  ('추석 연휴 (다음날)', '음력 8월 15일 다음날', '2026-10-07', 'class', teacher_id),
-  ('한글날', '세종대왕이 훈민정음을 반포한 날', '2026-10-09', 'class', teacher_id),
-  ('성탄절', '예수 그리스도의 탄생을 기념하는 날', '2026-12-25', 'class', teacher_id),
+  -- 2026년 공휴일 (event_type: 'holiday', user_id: NULL)
+  INSERT INTO public.events (title, description, event_date, event_type, user_id, created_by) VALUES
+  ('새해 첫날', '2026년 새해를 맞이하는 날', '2026-01-01', 'holiday', NULL, teacher_id),
+  ('설날 연휴 (전날)', '음력 1월 1일 전날', '2026-01-28', 'holiday', NULL, teacher_id),
+  ('설날', '음력 1월 1일 - 민족 최대 명절', '2026-01-29', 'holiday', NULL, teacher_id),
+  ('설날 연휴 (다음날)', '음력 1월 1일 다음날', '2026-01-30', 'holiday', NULL, teacher_id),
+  ('삼일절', '3.1 만세운동 기념일', '2026-03-01', 'holiday', NULL, teacher_id),
+  ('어린이날', '어린이의 인격을 존중하고 행복한 삶을 누리게 하는 날', '2026-05-05', 'holiday', NULL, teacher_id),
+  ('부처님 오신 날', '음력 4월 8일 - 석가탄신일', '2026-05-24', 'holiday', NULL, teacher_id),
+  ('현충일', '나라를 위해 목숨을 바친 분들을 추모하는 날', '2026-06-06', 'holiday', NULL, teacher_id),
+  ('광복절', '일본 식민 통치로부터 해방된 날', '2026-08-15', 'holiday', NULL, teacher_id),
+  ('개천절', '단군왕검이 고조선을 건국한 날', '2026-10-03', 'holiday', NULL, teacher_id),
+  ('추석 연휴 (전날)', '음력 8월 15일 전날', '2026-10-05', 'holiday', NULL, teacher_id),
+  ('추석', '음력 8월 15일 - 한가위', '2026-10-06', 'holiday', NULL, teacher_id),
+  ('추석 연휴 (다음날)', '음력 8월 15일 다음날', '2026-10-07', 'holiday', NULL, teacher_id),
+  ('한글날', '세종대왕이 훈민정음을 반포한 날', '2026-10-09', 'holiday', NULL, teacher_id),
+  ('성탄절', '예수 그리스도의 탄생을 기념하는 날', '2026-12-25', 'holiday', NULL, teacher_id),
 
-  -- 주요 기념일
-  ('삼짇날', '음력 3월 3일 - 봄맞이 명절', '2026-03-21', 'class', teacher_id),
-  ('식목일', '나무를 심어 국토를 푸르게 하는 날', '2026-04-05', 'class', teacher_id),
-  ('어버이날', '부모님의 은혜에 감사하는 날', '2026-05-08', 'class', teacher_id),
-  ('스승의 날', '선생님의 은혜에 감사하는 날', '2026-05-15', 'class', teacher_id),
-  ('6.25 전쟁일', '6.25 전쟁을 기억하는 날', '2026-06-25', 'class', teacher_id),
-  ('제헌절', '대한민국 헌법 제정 기념일', '2026-07-17', 'class', teacher_id),
-  ('국군의 날', '국군의 위상과 공헌을 기리는 날', '2026-10-01', 'class', teacher_id),
+  -- 2026년 주요 기념일 (event_type: 'class', user_id: NULL)
+  ('삼짇날', '음력 3월 3일 - 봄맞이 명절', '2026-03-21', 'class', NULL, teacher_id),
+  ('식목일', '나무를 심어 국토를 푸르게 하는 날', '2026-04-05', 'class', NULL, teacher_id),
+  ('어버이날', '부모님의 은혜에 감사하는 날', '2026-05-08', 'class', NULL, teacher_id),
+  ('스승의 날', '선생님의 은혜에 감사하는 날', '2026-05-15', 'class', NULL, teacher_id),
+  ('6.25 전쟁일', '6.25 전쟁을 기억하는 날', '2026-06-25', 'class', NULL, teacher_id),
+  ('제헌절', '대한민국 헌법 제정 기념일', '2026-07-17', 'class', NULL, teacher_id),
+  ('국군의 날', '국군의 위상과 공헌을 기리는 날', '2026-10-01', 'class', NULL, teacher_id),
 
-  -- 2027년 공휴일 및 기념일
-  ('새해 첫날', '2027년 새해를 맞이하는 날', '2027-01-01', 'class', teacher_id),
-  ('설날 연휴 (전날)', '음력 1월 1일 전날', '2027-02-16', 'class', teacher_id),
-  ('설날', '음력 1월 1일 - 민족 최대 명절', '2027-02-17', 'class', teacher_id),
-  ('설날 연휴 (다음날)', '음력 1월 1일 다음날', '2027-02-18', 'class', teacher_id),
-  ('삼일절', '3.1 만세운동 기념일', '2027-03-01', 'class', teacher_id),
-  ('삼짇날', '음력 3월 3일 - 봄맞이 명절', '2027-04-10', 'class', teacher_id),
-  ('식목일', '나무를 심어 국토를 푸르게 하는 날', '2027-04-05', 'class', teacher_id),
-  ('어린이날', '어린이의 인격을 존중하고 행복한 삶을 누리게 하는 날', '2027-05-05', 'class', teacher_id),
-  ('어버이날', '부모님의 은혜에 감사하는 날', '2027-05-08', 'class', teacher_id),
-  ('부처님 오신 날', '음력 4월 8일 - 석가탄신일', '2027-05-13', 'class', teacher_id),
-  ('스승의 날', '선생님의 은혜에 감사하는 날', '2027-05-15', 'class', teacher_id),
-  ('현충일', '나라를 위해 목숨을 바친 분들을 추모하는 날', '2027-06-06', 'class', teacher_id),
-  ('6.25 전쟁일', '6.25 전쟁을 기억하는 날', '2027-06-25', 'class', teacher_id),
-  ('제헌절', '대한민국 헌법 제정 기념일', '2027-07-17', 'class', teacher_id),
-  ('광복절', '일본 식민 통치로부터 해방된 날', '2027-08-15', 'class', teacher_id),
-  ('추석 연휴 (전날)', '음력 8월 15일 전날', '2027-09-25', 'class', teacher_id),
-  ('추석', '음력 8월 15일 - 한가위', '2027-09-26', 'class', teacher_id),
-  ('추석 연휴 (다음날)', '음력 8월 15일 다음날', '2027-09-27', 'class', teacher_id),
-  ('국군의 날', '국군의 위상과 공헌을 기리는 날', '2027-10-01', 'class', teacher_id),
-  ('개천절', '단군왕검이 고조선을 건국한 날', '2027-10-03', 'class', teacher_id),
-  ('한글날', '세종대왕이 훈민정음을 반포한 날', '2027-10-09', 'class', teacher_id),
-  ('성탄절', '예수 그리스도의 탄생을 기념하는 날', '2027-12-25', 'class', teacher_id)
+  -- 2027년 공휴일 (event_type: 'holiday', user_id: NULL)
+  ('새해 첫날', '2027년 새해를 맞이하는 날', '2027-01-01', 'holiday', NULL, teacher_id),
+  ('설날 연휴 (전날)', '음력 1월 1일 전날', '2027-02-16', 'holiday', NULL, teacher_id),
+  ('설날', '음력 1월 1일 - 민족 최대 명절', '2027-02-17', 'holiday', NULL, teacher_id),
+  ('설날 연휴 (다음날)', '음력 1월 1일 다음날', '2027-02-18', 'holiday', NULL, teacher_id),
+  ('삼일절', '3.1 만세운동 기념일', '2027-03-01', 'holiday', NULL, teacher_id),
+  ('어린이날', '어린이의 인격을 존중하고 행복한 삶을 누리게 하는 날', '2027-05-05', 'holiday', NULL, teacher_id),
+  ('부처님 오신 날', '음력 4월 8일 - 석가탄신일', '2027-05-13', 'holiday', NULL, teacher_id),
+  ('현충일', '나라를 위해 목숨을 바친 분들을 추모하는 날', '2027-06-06', 'holiday', NULL, teacher_id),
+  ('광복절', '일본 식민 통치로부터 해방된 날', '2027-08-15', 'holiday', NULL, teacher_id),
+  ('추석 연휴 (전날)', '음력 8월 15일 전날', '2027-09-25', 'holiday', NULL, teacher_id),
+  ('추석', '음력 8월 15일 - 한가위', '2027-09-26', 'holiday', NULL, teacher_id),
+  ('추석 연휴 (다음날)', '음력 8월 15일 다음날', '2027-09-27', 'holiday', NULL, teacher_id),
+  ('개천절', '단군왕검이 고조선을 건국한 날', '2027-10-03', 'holiday', NULL, teacher_id),
+  ('한글날', '세종대왕이 훈민정음을 반포한 날', '2027-10-09', 'holiday', NULL, teacher_id),
+  ('성탄절', '예수 그리스도의 탄생을 기념하는 날', '2027-12-25', 'holiday', NULL, teacher_id),
+
+  -- 2027년 주요 기념일 (event_type: 'class', user_id: NULL)
+  ('삼짇날', '음력 3월 3일 - 봄맞이 명절', '2027-04-10', 'class', NULL, teacher_id),
+  ('식목일', '나무를 심어 국토를 푸르게 하는 날', '2027-04-05', 'class', NULL, teacher_id),
+  ('어버이날', '부모님의 은혜에 감사하는 날', '2027-05-08', 'class', NULL, teacher_id),
+  ('스승의 날', '선생님의 은혜에 감사하는 날', '2027-05-15', 'class', NULL, teacher_id),
+  ('6.25 전쟁일', '6.25 전쟁을 기억하는 날', '2027-06-25', 'class', NULL, teacher_id),
+  ('제헌절', '대한민국 헌법 제정 기념일', '2027-07-17', 'class', NULL, teacher_id),
+  ('국군의 날', '국군의 위상과 공헌을 기리는 날', '2027-10-01', 'class', NULL, teacher_id)
   ON CONFLICT DO NOTHING;
 
   RAISE NOTICE '2026~2027년 공휴일 및 기념일이 성공적으로 등록되었습니다.';

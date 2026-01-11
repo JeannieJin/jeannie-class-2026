@@ -48,6 +48,11 @@ export function EventList({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
 
+  // 공휴일과 기념일을 제외한 일정만 표시
+  const personalEvents = events.filter(
+    (event) => event.event_type !== 'holiday' && event.event_type !== 'class'
+  )
+
   const formattedDate = format(new Date(date), 'M월 d일 (E)', { locale: ko })
 
   const handleDeleteClick = (event: Event) => {
@@ -84,19 +89,19 @@ export function EventList({
         <CardHeader>
           <CardTitle>{formattedDate}</CardTitle>
           <CardDescription>
-            {events.length === 0
+            {personalEvents.length === 0
               ? '등록된 일정이 없습니다.'
-              : `${events.length}개의 일정`}
+              : `${personalEvents.length}개의 일정`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {events.length === 0 ? (
+          {personalEvents.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground">
               이 날짜에 등록된 일정이 없습니다.
             </p>
           ) : (
             <div className="space-y-4">
-              {events.map((event) => {
+              {personalEvents.map((event) => {
                 const isHoliday = event.event_type === 'holiday'
 
                 return (
