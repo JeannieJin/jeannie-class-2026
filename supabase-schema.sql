@@ -284,6 +284,75 @@ create trigger set_updated_at before update on public.assignments
   for each row execute function public.handle_updated_at();
 
 -- ============================================================================
+-- 8. messages 테이블 (메시지)
+-- ============================================================================
+create table public.messages (
+  id uuid default uuid_generate_v4() primary key,
+  sender_id uuid references public.users(id) on delete cascade not null,
+  receiver_id uuid references public.users(id) on delete cascade not null,
+  content text not null,
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+
+  constraint different_users check (sender_id != receiver_id)
+);
+
+alter table public.messages enable row level security;
+
+-- 사용자는 자신이 발신자 또는 수신자인 메시지를 볼 수 있음
+create policy "사용자는 자신과 관련된 메시지를 볼 수 있음"
+  on public.messages for select
+  using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+-- 학생은 교사에게만 메시지를 보낼 수 있음
+create policy "학생은 교사에게만 메시지를 보낼 수 있음"
+  on public.messages for insert
+  with check (
+    sender_id = auth.uid()
+    and (
+      exists (
+        select 1 from public.users
+        where id = auth.uid() and role = 'teacher'
+      )
+      or
+      (
+        exists (
+          select 1 from public.users
+          where id = auth.uid() and role = 'student'
+        )
+        and
+        exists (
+          select 1 from public.users
+          where id = receiver_id and role = 'teacher'
+        )
+      )
+    )
+  );
+
+-- 발신자만 자신의 메시지를 삭제할 수 있음
+create policy "발신자만 자신의 메시지를 삭제할 수 있음"
+  on public.messages for delete
+  using (sender_id = auth.uid());
+
+-- 수신자만 메시지를 읽음 처리할 수 있음
+create policy "수신자만 메시지를 읽음 처리할 수 있음"
+  on public.messages for update
+  using (receiver_id = auth.uid())
+  with check (receiver_id = auth.uid());
+
+-- 인덱스 (성능 최적화)
+create index idx_messages_sender on public.messages(sender_id);
+create index idx_messages_receiver on public.messages(receiver_id);
+create index idx_messages_created_at on public.messages(created_at desc);
+create index idx_messages_is_read on public.messages(is_read);
+create index idx_messages_conversation on public.messages(sender_id, receiver_id, created_at desc);
+
+-- updated_at 자동 업데이트 트리거
+create trigger set_updated_at before update on public.messages
+  for each row execute function public.handle_updated_at();
+
+-- ============================================================================
 -- 완료!
 -- ============================================================================
 -- 이제 Supabase 대시보드에서 Authentication > Users로 이동하여
