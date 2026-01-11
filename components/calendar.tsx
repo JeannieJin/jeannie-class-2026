@@ -76,10 +76,10 @@ export function Calendar({ events, onDateClick, onMonthChange, selectedDate }: C
     )
   }
 
-  // 특정 날짜에 공휴일이 아닌 일정이 있는지 확인
-  const hasNonHolidayEvent = (date: Date) => {
+  // 특정 날짜에 공휴일이 아닌 일정 가져오기
+  const getNonHolidayEvents = (date: Date) => {
     const dateString = date.toISOString().split('T')[0]
-    return events.some(
+    return events.filter(
       (event) =>
         event.event_date === dateString && event.event_type !== 'holiday'
     )
@@ -171,7 +171,7 @@ export function Calendar({ events, onDateClick, onMonthChange, selectedDate }: C
             {week.map((date, dateIndex) => {
               const dateString = date.toISOString().split('T')[0]
               const holiday = getHoliday(date)
-              const hasOtherEvents = hasNonHolidayEvent(date)
+              const nonHolidayEvents = getNonHolidayEvents(date)
 
               return (
                 <button
@@ -183,7 +183,9 @@ export function Calendar({ events, onDateClick, onMonthChange, selectedDate }: C
                     !isCurrentMonth(date) && 'text-muted-foreground',
                     isToday(date) && 'border-primary bg-primary/5',
                     isSelected(date) && 'border-primary bg-primary/10',
-                    holiday && isCurrentMonth(date) && 'text-red-500',
+                    // 공휴일일 때 빨간색 테두리
+                    holiday && isCurrentMonth(date) && 'border-red-500 text-red-500',
+                    // 공휴일이 아닐 때 요일별 색상
                     !holiday &&
                       dateIndex === 0 &&
                       isCurrentMonth(date) &&
@@ -195,22 +197,25 @@ export function Calendar({ events, onDateClick, onMonthChange, selectedDate }: C
                   )}
                 >
                   <div className="text-sm font-medium">{date.getDate()}</div>
+
+                  {/* 공휴일 표시 */}
                   {holiday && (
-                    <div className="mt-1 text-[10px] font-medium text-red-500 line-clamp-2">
-                      {holiday.title}
-                    </div>
+                    <>
+                      <div className="mt-1 text-[10px] font-medium text-red-500 line-clamp-2">
+                        {holiday.title}
+                      </div>
+                      <div className="absolute bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-500" />
+                    </>
                   )}
-                  {hasOtherEvents && (
-                    <div className="absolute bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-primary" />
-                  )}
-                  {holiday && !hasOtherEvents && (
-                    <div className="absolute bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-500" />
-                  )}
-                  {holiday && hasOtherEvents && (
-                    <div className="absolute bottom-2 left-1/2 flex gap-0.5 -translate-x-1/2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    </div>
+
+                  {/* 일반 기념일 표시 */}
+                  {!holiday && nonHolidayEvents.length > 0 && (
+                    <>
+                      <div className="mt-1 text-[10px] font-medium text-green-600 line-clamp-2">
+                        {nonHolidayEvents[0].title}
+                      </div>
+                      <div className="absolute bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-green-600" />
+                    </>
                   )}
                 </button>
               )
