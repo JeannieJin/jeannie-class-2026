@@ -71,8 +71,26 @@ create policy "모두 시간표를 볼 수 있음"
   on public.timetable for select
   using (true);
 
-create policy "교사는 시간표를 관리할 수 있음"
-  on public.timetable for all
+create policy "교사는 시간표를 수정할 수 있음"
+  on public.timetable for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 시간표를 업데이트할 수 있음"
+  on public.timetable for update
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 시간표를 삭제할 수 있음"
+  on public.timetable for delete
   using (
     exists (
       select 1 from public.users
@@ -100,8 +118,26 @@ create policy "모두 전달사항을 볼 수 있음"
   on public.announcements for select
   using (true);
 
-create policy "교사는 전달사항을 관리할 수 있음"
-  on public.announcements for all
+create policy "교사는 전달사항을 작성할 수 있음"
+  on public.announcements for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 전달사항을 수정할 수 있음"
+  on public.announcements for update
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 전달사항을 삭제할 수 있음"
+  on public.announcements for delete
   using (
     exists (
       select 1 from public.users
@@ -130,8 +166,26 @@ create policy "모두 링크를 볼 수 있음"
   on public.links for select
   using (true);
 
-create policy "교사는 링크를 관리할 수 있음"
-  on public.links for all
+create policy "교사는 링크를 작성할 수 있음"
+  on public.links for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 링크를 수정할 수 있음"
+  on public.links for update
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 링크를 삭제할 수 있음"
+  on public.links for delete
   using (
     exists (
       select 1 from public.users
@@ -161,14 +215,38 @@ create policy "모두 학급 일정을 볼 수 있음"
   on public.events for select
   using (event_type = 'class' or user_id = auth.uid());
 
-create policy "학생은 자신의 개인 일정을 관리할 수 있음"
-  on public.events for all
-  using (
-    (user_id = auth.uid() and event_type = 'personal')
+create policy "학생은 자신의 개인 일정을 작성할 수 있음"
+  on public.events for insert
+  with check (user_id = auth.uid() and event_type = 'personal');
+
+create policy "학생은 자신의 개인 일정을 수정할 수 있음"
+  on public.events for update
+  using (user_id = auth.uid() and event_type = 'personal');
+
+create policy "학생은 자신의 개인 일정을 삭제할 수 있음"
+  on public.events for delete
+  using (user_id = auth.uid() and event_type = 'personal');
+
+create policy "교사는 모든 일정을 작성할 수 있음"
+  on public.events for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
   );
 
-create policy "교사는 모든 일정을 관리할 수 있음"
-  on public.events for all
+create policy "교사는 모든 일정을 수정할 수 있음"
+  on public.events for update
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 모든 일정을 삭제할 수 있음"
+  on public.events for delete
   using (
     exists (
       select 1 from public.users
@@ -197,8 +275,26 @@ create policy "모두 과제를 볼 수 있음"
   on public.assignments for select
   using (true);
 
-create policy "교사는 과제를 관리할 수 있음"
-  on public.assignments for all
+create policy "교사는 과제를 작성할 수 있음"
+  on public.assignments for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 과제를 수정할 수 있음"
+  on public.assignments for update
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+create policy "교사는 과제를 삭제할 수 있음"
+  on public.assignments for delete
   using (
     exists (
       select 1 from public.users
@@ -245,25 +341,38 @@ create policy "학생은 자신의 제출을 삭제할 수 있음"
 -- 인덱스 생성 (성능 최적화)
 -- ============================================================================
 create index idx_users_role on public.users(role);
+
+-- 외래키 인덱스
+create index idx_timetable_created_by on public.timetable(created_by);
+create index idx_announcements_created_by on public.announcements(created_by);
+create index idx_links_created_by on public.links(created_by);
+create index idx_events_user_id on public.events(user_id);
+create index idx_events_created_by on public.events(created_by);
+create index idx_assignments_created_by on public.assignments(created_by);
+create index idx_submissions_assignment on public.submissions(assignment_id);
+create index idx_submissions_student on public.submissions(student_id);
+
+-- 기타 인덱스
 create index idx_timetable_day_period on public.timetable(day_of_week, period);
 create index idx_announcements_created_at on public.announcements(created_at desc);
 create index idx_announcements_pinned on public.announcements(is_pinned);
 create index idx_events_date on public.events(event_date);
-create index idx_events_user_type on public.events(user_id, event_type);
 create index idx_assignments_subject on public.assignments(subject);
-create index idx_submissions_assignment on public.submissions(assignment_id);
-create index idx_submissions_student on public.submissions(student_id);
 
 -- ============================================================================
 -- updated_at 자동 업데이트 트리거
 -- ============================================================================
 create or replace function public.handle_updated_at()
-returns trigger as $$
+returns trigger
+security definer
+set search_path = public
+language plpgsql
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger set_updated_at before update on public.users
   for each row execute function public.handle_updated_at();
@@ -342,11 +451,10 @@ create policy "수신자만 메시지를 읽음 처리할 수 있음"
   with check (receiver_id = auth.uid());
 
 -- 인덱스 (성능 최적화)
-create index idx_messages_sender on public.messages(sender_id);
+-- sender_id는 conversation 복합 인덱스로 커버됨
 create index idx_messages_receiver on public.messages(receiver_id);
-create index idx_messages_created_at on public.messages(created_at desc);
-create index idx_messages_is_read on public.messages(is_read);
 create index idx_messages_conversation on public.messages(sender_id, receiver_id, created_at desc);
+create index idx_messages_receiver_unread on public.messages(receiver_id, is_read) where is_read = false;
 
 -- updated_at 자동 업데이트 트리거
 create trigger set_updated_at before update on public.messages
