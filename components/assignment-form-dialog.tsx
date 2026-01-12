@@ -15,10 +15,10 @@ interface AssignmentFormDialogProps {
   assignment?: {
     id: string
     title: string
-    description?: string
-    due_date?: string
+    description?: string | null
+    due_date?: string | null
     total_points?: number
-    external_url?: string
+    external_url?: string | null
   }
   onSuccess?: () => void
 }
@@ -105,7 +105,7 @@ export function AssignmentFormDialog({
             <Textarea
               id="description"
               name="description"
-              defaultValue={assignment?.description}
+              defaultValue={assignment?.description || ''}
               placeholder="과제 설명을 입력하세요"
               rows={5}
             />
@@ -117,7 +117,7 @@ export function AssignmentFormDialog({
               id="externalUrl"
               name="externalUrl"
               type="url"
-              defaultValue={assignment?.external_url}
+              defaultValue={assignment?.external_url || ''}
               placeholder="https://..."
             />
           </div>
@@ -130,7 +130,7 @@ export function AssignmentFormDialog({
                 name="dueDate"
                 type="datetime-local"
                 defaultValue={
-                  assignment?.due_date
+                  assignment?.due_date && assignment.due_date !== null
                     ? new Date(assignment.due_date).toISOString().slice(0, 16)
                     : ''
                 }
