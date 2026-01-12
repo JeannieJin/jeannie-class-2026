@@ -2,20 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/app/actions/auth'
 import { Card, CardContent } from '@/components/ui/card'
 import { AssignmentFormDialog } from '@/components/assignment-form-dialog'
-import { AssignmentDeleteButton } from '@/components/assignment-delete-button'
-import { SubmissionListDialog } from '@/components/submission-list-dialog'
+import { AssignmentTableRow } from '@/components/assignment-table-row'
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Languages, ExternalLink } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import Link from 'next/link'
+import { Languages } from 'lucide-react'
 
 export default async function EnglishAssignmentsPage() {
   const user: any = await getCurrentUser()
@@ -28,18 +23,42 @@ export default async function EnglishAssignmentsPage() {
     .eq('subject', 'english')
     .order('created_at', { ascending: false })) as any
 
+  // 학생인 경우 제출 현황 가져오기
+  let submissionMap: Record<string, boolean> = {}
+  let totalSubmitted = 0
+
+  if (user?.role === 'student' && assignments && assignments.length > 0) {
+    const { data: submissions } = (await supabase
+      .from('submissions')
+      .select('assignment_id')
+      .eq('student_id', user.id)
+      .in(
+        'assignment_id',
+        assignments.map((a: any) => a.id)
+      )) as any
+
+    if (submissions) {
+      submissions.forEach((s: any) => {
+        submissionMap[s.assignment_id] = true
+      })
+      totalSubmitted = submissions.length
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-pink-500/10">
-              <Languages className="h-8 w-8 text-pink-500" />
+            <div className="p-3 rounded-lg bg-orange-500/10">
+              <Languages className="h-8 w-8 text-orange-500" />
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight">영어 과제</h1>
               <p className="text-lg text-muted-foreground">
-                영어 과제 목록 및 제출 현황
+                {user?.role === 'student'
+                  ? `영어 과제 목록 및 제출 현황 (총 과제: ${assignments?.length || 0}, 제출완료: ${totalSubmitted})`
+                  : '영어 과제 목록 및 제출 현황'}
               </p>
             </div>
           </div>
@@ -49,7 +68,7 @@ export default async function EnglishAssignmentsPage() {
         </div>
       </div>
 
-      {/* 과제 목록 테이블 (교사용) */}
+      {/* 과제 목록 테이블 */}
       <Card>
         <CardContent className="p-0">
           {assignments && assignments.length > 0 ? (
@@ -61,90 +80,30 @@ export default async function EnglishAssignmentsPage() {
                   <TableHead>내용</TableHead>
                   <TableHead className="w-32">마감일</TableHead>
                   <TableHead className="w-28">작성일</TableHead>
-                  <TableHead className="w-28 text-center">제출 명단</TableHead>
-                  <TableHead className="w-24 text-center">작업</TableHead>
+                  {user?.role === 'teacher' && (
+                    <TableHead className="w-28 text-center">제출 명단</TableHead>
+                  )}
+                  {user?.role === 'student' && (
+                    <TableHead className="w-32 text-center">제출</TableHead>
+                  )}
+                  {user?.role === 'teacher' && (
+                    <TableHead className="w-24 text-center">작업</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {assignments.map((assignment: any, index: number) => {
+                  const isSubmitted = submissionMap[assignment.id] || false
+
                   return (
-                    <TableRow key={assignment.id} className="hover:bg-muted/50">
-                      {/* 번호 */}
-                      <TableCell className="font-medium text-muted-foreground">
-                        {assignments.length - index}
-                      </TableCell>
-
-                      {/* 제목 */}
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-semibold">{assignment.title}</div>
-                          {assignment.external_url && (
-                            <Link
-                              href={assignment.external_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              링크
-                            </Link>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* 내용 */}
-                      <TableCell>
-                        {assignment.description ? (
-                          <div className="text-sm text-muted-foreground line-clamp-2">
-                            {assignment.description}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-
-                      {/* 마감일 */}
-                      <TableCell>
-                        {assignment.due_date ? (
-                          <div className="text-sm">
-                            {format(new Date(assignment.due_date), 'yy.MM.dd HH:mm', { locale: ko })}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-
-                      {/* 작성일 */}
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(assignment.created_at), 'yy.MM.dd', { locale: ko })}
-                        </div>
-                      </TableCell>
-
-                      {/* 제출 명단 */}
-                      <TableCell className="text-center">
-                        <SubmissionListDialog
-                          assignmentId={assignment.id}
-                          assignmentTitle={assignment.title}
-                        />
-                      </TableCell>
-
-                      {/* 작업 버튼 */}
-                      <TableCell>
-                        <div className="flex justify-center gap-1">
-                          <AssignmentFormDialog
-                            subject="english"
-                            mode="edit"
-                            assignment={assignment}
-                          />
-                          <AssignmentDeleteButton
-                            assignmentId={assignment.id}
-                            assignmentTitle={assignment.title}
-                            subject="english"
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <AssignmentTableRow
+                      key={assignment.id}
+                      assignment={assignment}
+                      index={index}
+                      totalCount={assignments.length}
+                      isSubmitted={isSubmitted}
+                      userRole={user?.role}
+                    />
                   )
                 })}
               </TableBody>
