@@ -10,6 +10,7 @@ import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { MealMenu } from '@/components/meal-menu'
 
 const SUBJECT_NAMES: Record<string, string> = {
   korean: '국어',
@@ -103,17 +104,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* 환영 메시지 */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">
-          안녕하세요, {user?.name}님! 👋
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          오늘은 무엇을 배우고 싶으신가요?
-        </p>
-        <p className="text-sm text-muted-foreground">
-          자신에게 투자하고 꿈을 향한 첫 걸음을 내딛어보세요
-        </p>
+      {/* 환영 메시지 & 급식 메뉴 */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start justify-between">
+        <div className="space-y-2 flex-1">
+          <h1 className="text-4xl font-bold tracking-tight">
+            안녕하세요, {user?.name}님! 👋
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            오늘은 무엇을 배우고 싶으신가요?
+          </p>
+          <p className="text-sm text-muted-foreground">
+            자신에게 투자하고 꿈을 향한 첫 걸음을 내딛어보세요
+          </p>
+        </div>
+        <div className="w-full lg:w-[600px] shrink-0">
+          <MealMenu />
+        </div>
       </div>
 
       {/* 안읽은 메시지 알림 */}
