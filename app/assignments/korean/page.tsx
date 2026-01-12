@@ -45,6 +45,10 @@ export default async function KoreanAssignmentsPage() {
     }
   }
 
+  // 디버깅: 현재 사용자 역할 확인
+  console.log('Korean Page - User:', user)
+  console.log('Korean Page - User Role:', user?.role)
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -57,8 +61,8 @@ export default async function KoreanAssignmentsPage() {
               <h1 className="text-4xl font-bold tracking-tight">국어 과제</h1>
               <p className="text-lg text-muted-foreground">
                 {user?.role === 'student'
-                  ? `국어 과제 목록 및 제출 현황 (총 과제: ${assignments?.length || 0}, 제출완료: ${totalSubmitted})`
-                  : '국어 과제 목록 및 제출 현황'}
+                  ? `국어 과제 목록 및 제출 현황 (총 과제: ${assignments?.length || 0}, 제출완료: ${totalSubmitted}) [역할: ${user?.role}]`
+                  : `국어 과제 목록 및 제출 현황 [역할: ${user?.role || '알 수 없음'}]`}
               </p>
             </div>
           </div>
