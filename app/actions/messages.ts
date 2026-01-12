@@ -70,17 +70,37 @@ export async function getConversationList() {
   }
 
   try {
-    // 현재 사용자가 관련된 모든 메시지 조회
-    const { data: messages, error: messagesError } = await (supabase
-      .from('messages'))
-      .select('*')
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order('created_at', { ascending: false })
+    // 현재 사용자가 보낸 메시지와 받은 메시지를 각각 조회
+    const [sentResult, receivedResult] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('sender_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('receiver_id', user.id)
+        .order('created_at', { ascending: false })
+    ])
 
-    if (messagesError) {
-      console.error('메시지 조회 오류:', messagesError)
+    if (sentResult.error) {
+      console.error('보낸 메시지 조회 오류:', sentResult.error)
       return { error: '메시지 조회에 실패했습니다.' }
     }
+
+    if (receivedResult.error) {
+      console.error('받은 메시지 조회 오류:', receivedResult.error)
+      return { error: '메시지 조회에 실패했습니다.' }
+    }
+
+    // 두 결과를 합치고 중복 제거
+    const allMessages = [...(sentResult.data || []), ...(receivedResult.data || [])]
+
+    // 생성 시간순으로 정렬
+    const messages = allMessages.sort((a: Message, b: Message) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
 
     if (!messages || messages.length === 0) {
       return { success: true, data: [] }
@@ -99,13 +119,19 @@ export async function getConversationList() {
     const conversations = await Promise.all(
       partnerIds.map(async (partnerId) => {
         // 상대방 정보 조회
-        const { data: partner } = await supabase
+        const { data: partner, error: partnerError } = await supabase
           .from('users')
           .select('id, name, role, avatar_url')
           .eq('id', partnerId)
           .single<{ id: string; name: string; role: 'teacher' | 'student'; avatar_url: string | null }>()
 
-        if (!partner) return null
+        if (partnerError) {
+          console.error('상대방 조회 오류:', partnerError)
+        }
+
+        if (!partner) {
+          return null
+        }
 
         // 해당 상대와의 메시지 중 최근 메시지 찾기
         const partnerMessages = messages.filter(
@@ -155,19 +181,37 @@ export async function getMessages(partnerId: string) {
   }
 
   try {
-    // 양방향 메시지 조회
-    const { data: messages, error: messagesError } = await (supabase
-      .from('messages'))
-      .select('*')
-      .or(
-        `and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`
-      )
-      .order('created_at', { ascending: true })
+    // 양방향 메시지 조회 (보낸 메시지와 받은 메시지를 각각 조회)
+    const [sentResult, receivedResult] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('sender_id', user.id)
+        .eq('receiver_id', partnerId)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('sender_id', partnerId)
+        .eq('receiver_id', user.id)
+        .order('created_at', { ascending: true })
+    ])
 
-    if (messagesError) {
-      console.error('메시지 조회 오류:', messagesError)
+    if (sentResult.error) {
+      console.error('보낸 메시지 조회 오류:', sentResult.error)
       return { error: '메시지 조회에 실패했습니다.' }
     }
+
+    if (receivedResult.error) {
+      console.error('받은 메시지 조회 오류:', receivedResult.error)
+      return { error: '메시지 조회에 실패했습니다.' }
+    }
+
+    // 두 결과를 합치고 시간순으로 정렬
+    const allMessages = [...(sentResult.data || []), ...(receivedResult.data || [])]
+    const messages = allMessages.sort((a: Message, b: Message) => {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    })
 
     // 발신자 정보 추가
     const messagesWithSender = await Promise.all(
