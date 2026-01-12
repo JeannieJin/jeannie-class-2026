@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import { ChevronLeft, ChevronRight, Save } from 'lucide-react'
 import { format, addWeeks, startOfWeek, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -27,7 +26,6 @@ export default function TimetablePage() {
     // 이번 주 월요일
     return startOfWeek(new Date(), { weekStartsOn: 1 })
   })
-
   const [timetable, setTimetable] = useState<TimetableCell[]>([])
   const [isTeacher, setIsTeacher] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -64,12 +62,21 @@ export default function TimetablePage() {
     setIsLoading(true)
     try {
       const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd')
+      console.log('시간표 조회 시작:', weekStartStr)
+
       const { data, error } = await supabase
         .from('timetable')
         .select('*')
         .eq('week_start_date', weekStartStr)
+        .order('day_of_week')
+        .order('period')
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase 에러:', error.message, error)
+        throw error
+      }
+
+      console.log('조회된 시간표 데이터:', data)
 
       // 기존 데이터가 있으면 사용, 없으면 빈 템플릿 생성
       if (data && data.length > 0) {
@@ -78,7 +85,7 @@ export default function TimetablePage() {
           day_of_week: item.day_of_week,
           period: item.period,
           subject: item.subject || '',
-          is_holiday: item.is_holiday || false,
+          is_holiday: false,
         })))
       } else {
         // 빈 템플릿 생성
@@ -95,9 +102,9 @@ export default function TimetablePage() {
         }
         setTimetable(emptyTemplate)
       }
-    } catch (error) {
-      console.error('시간표 로드 실패:', error)
-      toast.error('시간표를 불러오는 데 실패했습니다')
+    } catch (error: any) {
+      console.error('시간표 로드 실패:', error?.message || error)
+      toast.error(error?.message || '시간표를 불러오는 데 실패했습니다')
     } finally {
       setIsLoading(false)
     }
@@ -114,26 +121,10 @@ export default function TimetablePage() {
   }
 
   // 셀 값 업데이트
-  function updateCell(day: number, period: number, field: 'subject' | 'is_holiday', value: string | boolean) {
+  function updateCell(day: number, period: number, value: string) {
     setTimetable(prev => prev.map(cell => {
       if (cell.day_of_week === day && cell.period === period) {
-        return { ...cell, [field]: value }
-      }
-      return cell
-    }))
-  }
-
-  // 휴일 체크 시 해당 요일 전체 처리
-  function toggleHoliday(day: number) {
-    const isCurrentlyHoliday = timetable.find(c => c.day_of_week === day && c.period === 1)?.is_holiday || false
-
-    setTimetable(prev => prev.map(cell => {
-      if (cell.day_of_week === day) {
-        return {
-          ...cell,
-          is_holiday: !isCurrentlyHoliday,
-          subject: !isCurrentlyHoliday ? '' : cell.subject // 휴일로 체크하면 과목 초기화
-        }
+        return { ...cell, subject: value }
       }
       return cell
     }))
@@ -153,27 +144,30 @@ export default function TimetablePage() {
 
       const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd')
 
-      // 기존 데이터 삭제
+      // 해당 주의 기존 데이터 삭제
       await supabase
         .from('timetable')
         .delete()
         .eq('week_start_date', weekStartStr)
 
-      // 새 데이터 삽입
-      const insertData = timetable.map(cell => ({
-        week_start_date: weekStartStr,
-        day_of_week: cell.day_of_week,
-        period: cell.period,
-        subject: cell.subject || null,
-        is_holiday: cell.is_holiday,
-        created_by: user.id,
-      }))
+      // 과목이 입력된 셀만 저장
+      const insertData = timetable
+        .filter(cell => cell.subject && cell.subject.trim() !== '')
+        .map(cell => ({
+          week_start_date: weekStartStr,
+          day_of_week: cell.day_of_week,
+          period: cell.period,
+          subject: cell.subject.trim(),
+          created_by: user.id,
+        }))
 
-      const { error } = await supabase
-        .from('timetable')
-        .insert(insertData as any)
+      if (insertData.length > 0) {
+        const { error } = await supabase
+          .from('timetable')
+          .insert(insertData as any)
 
-      if (error) throw error
+        if (error) throw error
+      }
 
       toast.success('시간표가 저장되었습니다')
       await loadTimetable() // 다시 로드
@@ -193,11 +187,6 @@ export default function TimetablePage() {
       subject: '',
       is_holiday: false,
     }
-  }
-
-  // 특정 요일이 휴일인지 확인
-  function isDayHoliday(day: number): boolean {
-    return timetable.find(c => c.day_of_week === day && c.period === 1)?.is_holiday || false
   }
 
   if (isLoading) {
@@ -261,30 +250,12 @@ export default function TimetablePage() {
                   {DAYS.map((day, idx) => {
                     const dayDate = addDays(currentWeekStart, idx)
                     const dateStr = format(dayDate, 'M/d')
-                    const isHoliday = isDayHoliday(idx + 1)
 
                     return (
-                      <th key={day} className="border p-3 bg-muted">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{day}</span>
-                            <span className="text-sm text-muted-foreground">({dateStr})</span>
-                          </div>
-                          {isTeacher && (
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                id={`holiday-${idx}`}
-                                checked={isHoliday}
-                                onCheckedChange={() => toggleHoliday(idx + 1)}
-                              />
-                              <label
-                                htmlFor={`holiday-${idx}`}
-                                className="text-xs cursor-pointer"
-                              >
-                                휴일
-                              </label>
-                            </div>
-                          )}
+                      <th key={day} className="border p-3 bg-muted text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="font-semibold">{day}</span>
+                          <span className="text-sm text-muted-foreground">({dateStr})</span>
                         </div>
                       </th>
                     )
@@ -311,7 +282,7 @@ export default function TimetablePage() {
                           ) : isTeacher ? (
                             <Input
                               value={cell.subject}
-                              onChange={(e) => updateCell(day, period, 'subject', e.target.value)}
+                              onChange={(e) => updateCell(day, period, e.target.value)}
                               placeholder="과목명"
                               className="text-center"
                             />
