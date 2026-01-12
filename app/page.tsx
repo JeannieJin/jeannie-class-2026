@@ -51,10 +51,17 @@ export default function Home() {
 
   useEffect(() => {
     async function checkUser() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setIsAuthenticated(!!user)
-      setIsLoading(false)
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsAuthenticated(!!session)
+      } catch (error) {
+        // 세션 확인 실패 시 로그인하지 않은 것으로 처리
+        console.error('세션 확인 중 오류:', error)
+        setIsAuthenticated(false)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     checkUser()
