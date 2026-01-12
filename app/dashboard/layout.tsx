@@ -23,6 +23,7 @@ export default async function DashboardLayout({
       <DashboardSidebar
         userName={user?.name}
         avatarUrl={user?.avatar_url}
+        userRole={user?.role}
         unreadMessageCount={unreadCount}
       />
       <main className="flex-1 overflow-y-auto">

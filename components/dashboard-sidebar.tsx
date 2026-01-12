@@ -114,16 +114,26 @@ const navItems = [
 export function DashboardSidebar({
   userName = "학생",
   avatarUrl,
+  userRole,
   unreadMessageCount = 0
 }: {
   userName?: string
   avatarUrl?: string | null
+  userRole?: string
   unreadMessageCount?: number
 }) {
   const pathname = usePathname()
   const today = new Date()
   const formattedDate = format(today, 'yyyy.M.d.(E)', { locale: ko })
   const [openMenus, setOpenMenus] = useState<string[]>(['과제'])
+
+  // 학생인 경우 학생명단 메뉴 제외
+  const filteredNavItems = navItems.filter(item => {
+    if (userRole === 'student' && item.title === '학생명단') {
+      return false
+    }
+    return true
+  })
 
   const toggleMenu = (title: string) => {
     setOpenMenus(prev =>
@@ -159,7 +169,7 @@ export function DashboardSidebar({
       </div>
 
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href
           const isChildActive = item.children?.some(child => pathname === child.href)
           const isOpen = openMenus.includes(item.title)
